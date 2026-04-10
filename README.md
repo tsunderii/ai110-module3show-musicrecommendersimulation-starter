@@ -280,99 +280,55 @@ Combines reflection and model card framing from the Module 3 guidance. :contentR
 
 ## 1. Model Name
 
-Give your recommender a name, for example:
-
-> VibeFinder 1.0
+Music Estoric-ness Detector
 
 ---
 
 ## 2. Intended Use
 
-- What is this system trying to do
-- Who is it for
-
-Example:
-
-> This model suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is for classroom exploration only, not for real users.
+This system suggests the top 5 songs from an 18-song catalog based on what a user says they like — genre, mood, and energy level. It's designed for classroom exploration to show how content-based filtering works. It's not meant for real users or production use.
 
 ---
 
 ## 3. How It Works (Short Explanation)
 
-Describe your scoring logic in plain language.
-
-- What features of each song does it consider
-- What information about the user does it use
-- How does it turn those into a number
-
-Try to avoid code in this section, treat it like an explanation to a non programmer.
+You tell the system your favorite genre, mood, and how high-energy you want the music to be. It goes through every song in the catalog and gives each one a score based on how closely it matches — songs that share your genre or mood get a flat bonus, and songs that are close to your energy and vibe get extra points too. Then it sorts everything highest to lowest and shows the top 5 with a breakdown of exactly why each song ranked where it did.
 
 ---
 
 ## 4. Data
 
-Describe your dataset.
-
-- How many songs are in `data/songs.csv`
-- Did you add or remove any songs
-- What kinds of genres or moods are represented
-- Whose taste does this data mostly reflect
+The catalog has 18 songs in a CSV file covering 15 genres and 12 moods. Most genres only have one song — lofi has 3 and pop has 2, everything else is a single entry. The data reflects a general Western music taste but is missing moods people actually use a lot like sad, calm, or upbeat.
 
 ---
 
 ## 5. Strengths
 
-Where does your recommender work well
-
-You can think about:
-- Situations where the top results "felt right"
-- Particular user profiles it served well
-- Simplicity or transparency benefits
+The system works best when the user's preferences match cleanly to something in the catalog — the Chill Lofi and High-Energy Pop profiles both returned results that felt genuinely right. It's also fully transparent since every score is explained line by line so you can see exactly why a song ranked where it did. That level of explainability is something real recommenders like Spotify don't offer.
 
 ---
 
 ## 6. Limitations and Bias
 
-Where does your recommender struggle
-
-Some prompts:
-- Does it ignore some genres or moods
-- Does it treat all users as if they have the same taste shape
-- Is it biased toward high energy or one genre by default
-- How could this be unfair if used in a real product
+Genre matching is exact string only so "indie pop" and "pop" score as completely unrelated even though they sound similar, which creates a filter bubble for anyone with hybrid taste. Most genres also only have one song so the genre bonus basically locks in a winner before any other features even matter. If this were a real product it would be unfair to listeners who don't fit neatly into a single label, which is most people.
 
 ---
 
 ## 7. Evaluation
 
-How did you check your system
-
-Examples:
-- You tried multiple user profiles and wrote down whether the results matched your expectations
-- You compared your simulation to what a real app like Spotify or YouTube tends to recommend
-- You wrote tests for your scoring logic
-
-You do not need a numeric metric, but if you used one, explain what it measures.
+Six profiles were tested — three normal ones and three adversarial edge cases designed to stress-test the logic. The adversarial profiles found two real issues: a user asking for sad music got the happiest songs in the catalog, and a user wanting acoustic metal still got a loud distorted track at #1 because the label bonuses were too strong. A weight shift experiment (genre ÷2, energy ×2) was also run which made some results more intuitive but didn't fix the core label-matching problem.
 
 ---
 
 ## 8. Future Work
 
-If you had more time, how would you improve this recommender
-
-Examples:
-
-- Add support for multiple users and "group vibe" recommendations
-- Balance diversity of songs instead of always picking the closest match
-- Use more features, like tempo ranges or lyric themes
+- Switch to fuzzy genre matching so "indie pop," "pop," and "synth pop" share partial credit instead of scoring as completely different
+- Expand the catalog to 5–10 songs per genre so numeric features actually determine the ranking within a genre instead of the label alone
+- Add a mood fallback so if a user asks for "sad" and nothing matches, the system picks the closest available mood instead of silently ignoring it
 
 ---
 
 ## 9. Personal Reflection
 
-A few sentences about what you learned:
-
-- What surprised you about how your system behaved
-- How did building this change how you think about real music recommenders
-- Where do you think human judgment still matters, even if the model seems "smart"
+The most surprising thing was how confident the output looked even when it was wrong — the Conflicted Energy profile returned solid-looking scores for songs that had nothing to do with what the user asked for, with no sign anything was off. Building this changed how I think about Spotify because I used to assume it matched songs to my taste, but really it's predicting what I won't skip, which is a way harder problem. Human judgment still matters a lot here because someone has to decide which features to measure and how much to weight them, and those choices shape every result the system ever gives.
 
