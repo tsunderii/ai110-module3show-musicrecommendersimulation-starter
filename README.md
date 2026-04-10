@@ -17,17 +17,41 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-Explain your design in plain language.
+In real-world reccomendation systems such as Spotify or YouTube, they combine collborative filtering, neutral audio enbeddedings, and natural language process on playlist names. These systems digest billions of implicit signals such as skips or replays and personalizes each user's sessions per listening session.
 
-Some prompts to answer:
+The music reccomender's priority is to focus on pure content based filter, not taking into account user history but instead just the individual the device is running on. It should be able to score each song directly against a declared preference profile -- being able to explain each score.
 
-- What features does each `Song` use in your system
-  - For example: genre, mood, energy, tempo
-- What information does your `UserProfile` store
-- How does your `Recommender` compute a score for each song
-- How do you choose which songs to recommend
+Song uses: genre, mood, energy, tempo_bpm, valence, danceability, and acousticness as its scoring features.
 
-You can include a simple diagram or bullet list if helpful.
+UserProfile stores: favorite_genre, favorite_mood, target_energy, and likes_acoustic — the declared preferences the recommender scores against.
+
+Recommender computes a weighted score per song (exact-match bonus for genre/mood + proximity formula 1 - |difference| for numeric features), then sorts all songs by score descending and returns the top K.
+
+The algorithm awards +2.00 for a genre match, +1.50 for a mood match, and up to +1.00/+0.75/+0.50 for energy, valence, and acousticness proximity respectively (max score: 6.25). A known bias is that the categorical matches dominate — a song nailing genre and mood (+3.50) will almost always outrank one that is a near-perfect numeric fit but misses both labels, which means great songs from adjacent genres (e.g., ambient when the user prefers lofi) tend to be underranked.
+
+
+         data/songs.csv
+               │
+               ▼
+    ┌─────────────────────┐
+    │  List[Song] objects │  ← 10 songs, all attributes loaded
+    └─────────────────────┘
+               │
+               │  + UserProfile (genre, mood, energy target)
+               ▼
+    ┌─────────────────────┐
+    │   score_song()      │  ← runs once per song
+    │   weighted formula  │  → float score + reason list
+    └─────────────────────┘
+               │
+               ▼
+    ┌─────────────────────┐
+    │  recommend_songs()  │  ← sort all scores, slice top K
+    └─────────────────────┘
+               │
+               ▼
+    Top K (song, score, explanation) tuples → printed in main.py
+
 
 ---
 
