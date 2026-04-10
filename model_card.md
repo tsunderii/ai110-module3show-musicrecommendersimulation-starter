@@ -1,111 +1,87 @@
 # 🎧 Model Card: Music Recommender Simulation
 
-## 1. Model Name  
+---
 
-Give your model a short, descriptive name.  
-Example: **VibeFinder 1.0**  
+## 1. Model Name
+
+**VibeFinder 1.0**
 
 ---
 
-## 2. Intended Use  
+## 2. Goal / Task
 
-Describe what your recommender is designed to do and who it is for. 
+VibeFinder suggests songs from a small catalog based on what a user says they like. You tell it your favorite genre, mood, and energy level, and it scores every song in the catalog against those preferences. The goal is to return the 5 best matches in order.
 
-Prompts:  
-
-- What kind of recommendations does it generate  
-- What assumptions does it make about the user  
-- Is this for real users or classroom exploration  
+It doesn't learn from your listening history. It just takes what you tell it and runs the math.
 
 ---
 
-## 3. How the Model Works  
+## 3. Data Used
 
-Explain your scoring approach in simple language.  
+The catalog has 18 songs stored in a CSV file. Each song has these features: genre, mood, energy, tempo (BPM), valence, danceability, acousticness, studyability, and niche score.
 
-Prompts:  
-
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
-
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
+There are 15 different genres and 12 different moods represented. Most genres only have one song — lofi has 3, pop has 2, and everything else has 1. The catalog skews slightly toward mid-to-high energy (average energy is 0.60 out of 1.0). There are no songs tagged "sad," "calm," or "upbeat," which means users who ask for those moods get nothing back for that preference.
 
 ---
 
-## 4. Data  
+## 4. Algorithm Summary
 
-Describe the dataset the model uses.  
+For every song, the system adds up points based on how well it matches the user's preferences.
 
-Prompts:  
+It gives a flat bonus if the genre matches exactly (+1.00) and another flat bonus if the mood matches exactly (+1.50). Then it calculates how close each song is to the user's target on energy, valence, acousticness, studyability, and niche score. The closer the song is to the target, the more points it earns on that feature.
 
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+All the points get added together and the songs are sorted highest to lowest. The top 5 are returned as recommendations. The max possible score is 6.25.
 
----
-
-## 5. Strengths  
-
-Where does your system seem to work well  
-
-Prompts:  
-
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
+The mood bonus is intentionally the biggest single bonus because the vibe of a song matters more than the genre label — a chill listener probably won't enjoy an intense song even if it's the right genre.
 
 ---
 
-## 6. Limitations and Bias 
+## 5. Observed Behavior / Biases
 
-Where the system struggles or behaves unfairly. 
-
-Prompts:  
-
-- Features it does not consider  
-- Genres or moods that are underrepresented  
-- Cases where the system overfits to one preference  
-- Ways the scoring might unintentionally favor some users  
+The biggest weakness is how genre matching works — it's exact string only, so "indie pop" and "pop" score as completely different even though they sound similar. This creates a filter bubble where users with hybrid tastes consistently get worse results than users who fit a single clean label. It showed up clearly in testing: Rooftop Lights (indie pop / happy) kept ranking below Gym Hero (pop / intense) for a happy-pop listener, which makes no sense musically. The catalog also only has one song for 13 of 15 genres, so the genre bonus basically just picks a predetermined winner with no competition. The mood vocabulary has the same problem — "relaxed" and "chill" score as total mismatches even though most listeners wouldn't tell the difference.
 
 ---
 
-## 7. Evaluation  
+## 6. Evaluation Process
 
-How you checked whether the recommender behaved as expected. 
+Six profiles were tested: High-Energy Pop, Chill Lofi, Deep Intense Rock, and three adversarial cases — a conflicted user who wanted high energy but a sad mood, an acoustic metalhead (metal genre but very high acousticness), and a blank slate with no genre or mood set at all.
 
-Prompts:  
+The most surprising result was the Acoustic Metalhead profile. Even though that user wanted songs with a very organic, quiet sound, Iron Cathedral — a loud, distorted metal track — still ranked #1 by a huge margin. It won because it was the only metal song with an angry mood, so the label bonuses stacked up faster than the acousticness mismatch could drag it down. The system technically followed its own rules, but the output made no musical sense.
 
-- Which user profiles you tested  
-- What you looked for in the recommendations  
-- What surprised you  
-- Any simple tests or comparisons you ran  
+The Conflicted Energy profile (high energy + sad mood) was also revealing. Since no songs in the catalog are tagged as "sad," the mood bonus was wasted entirely and the system just fell back on genre, surfacing the two happiest pop songs for someone who asked for sad music. That result confirmed that the system has no way to handle a mood that doesn't exist in its vocabulary — it just silently ignores the request.
 
-No need for numeric metrics unless you created some.
+One logic experiment was also run: the genre weight was cut in half (2.00 → 1.00) and the energy weight was doubled (1.00 → 2.00). The max score stayed the same at 6.25. The main effect was that Rooftop Lights (indie pop / happy) finally jumped above Gym Hero (pop / intense) for the happy-pop listener — which felt more accurate. But it didn't fix the Acoustic Metalhead problem, because the two label bonuses together (2.50) still overwhelmed any numeric mismatch.
 
 ---
 
-## 8. Future Work  
+## 7. Intended Use and Non-Intended Use
 
-Ideas for how you would improve the model next.  
+**Intended use:** This is a classroom project. It's meant to show how a simple content-based recommender works — how you turn user preferences into scores and use those scores to rank results. It's for learning, not for real users.
 
-Prompts:  
-
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+**Not intended for:** Giving anyone actual music recommendations they'd rely on. The catalog is too small (18 songs), the genre matching is too rigid, and there's no personalization based on listening history. It also shouldn't be used as a model for how to build a production recommender — it skips collaborative filtering, audio embeddings, and basically everything that makes Spotify work.
 
 ---
 
-## 9. Personal Reflection  
+## 8. Ideas for Improvement
 
-A few sentences about your experience.  
+1. **Fuzzy genre matching.** Instead of exact string comparison, group similar genres together (pop, indie pop, dance pop → all get partial credit). This would fix the filter bubble problem for hybrid-taste users.
 
-Prompts:  
+2. **Expand the catalog.** With only 1 song per genre for 13 of 15 genres, there's no variety within a genre match. Adding 5–10 songs per genre would make the numeric features actually matter for ranking within a genre.
 
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  
+3. **Handle missing moods gracefully.** Right now if a user asks for "sad" and no songs are tagged sad, the system silently ignores it. It should either warn the user or fall back to the closest available mood (like "melancholic") instead of pretending the preference doesn't exist.
+
+---
+
+## 9. Personal Reflection
+
+**Biggest learning moment:**
+My biggest learning moment was seeing Iron Cathedral rank #1 for the Acoustic Metalhead profile even though the user specifically wanted acoustic-sounding music. I didn't expect the genre and mood bonuses to be strong enough to completely override a preference that was that specific. It made me realize that how you weight things matters just as much as what you're weighing.
+
+**How AI tools helped, and when I had to double-check:**
+AI tools helped a lot with the boilerplate stuff like setting up the scoring logic and explaining what each weight was doing. But I had to double-check whenever it made a change to the weights because the math had to still add up to the same max score. I also had to verify the output myself since the AI would say something "felt right" but the actual terminal results told a different story.
+
+**What surprised me about simple algorithms feeling like recommendations:**
+I was surprised that something as basic as matching a genre label and adding up a few numbers could actually return results that felt like real recommendations most of the time. For profiles like Chill Lofi and High-Energy Pop, the top results genuinely made sense without any complex logic behind them. It made me understand why content-based filtering was the starting point for real recommender systems before collaborative filtering took over.
+
+**What I'd try next:**
+I'd want to try fuzzy genre matching so that "indie pop" and "pop" actually share some credit instead of being treated as completely unrelated. I'd also expand the catalog a lot because right now most genres only have one song, which basically makes the genre bonus a guaranteed winner with no competition. Adding more songs per genre would let the numeric features do more of the actual ranking work.

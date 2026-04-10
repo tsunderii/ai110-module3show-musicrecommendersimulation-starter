@@ -90,29 +90,173 @@ You can add more tests in `tests/test_recommender.py`.
 
 ---
 
+## Sensitivity Test — Weight Shift (genre ÷2, energy ×2)
+
+Changed in [src/recommender.py](src/recommender.py): genre bonus `2.00 → 1.00`, energy weight `1.00 → 2.00`. Max score stays 6.25.
+
+**Key ranking changes:**
+
+| Profile | Before | After | Better or just different? |
+|---------|--------|-------|--------------------------|
+| High-Energy Pop | #2 Gym Hero (pop/intense) | #2 Rooftop Lights (indie pop/happy) | **Better** — a happy song now beats an intense one |
+| Chill Lofi | #3 Focus Flow (lofi/focused) | #3 Spacewalk Thoughts (ambient/chill) | Mixed — mood match wins over genre match |
+| Acoustic Metalhead | Iron Cathedral wins by 3.74 pts | Iron Cathedral wins by 2.76 pts | Slightly better but still broken |
+| Blank Slate | scores 2.30–2.43 | scores 3.18–3.38 | Same songs, just wider spread |
+
+**Verdict:** The change made Profile 1 more intuitive (Rooftop Lights correctly jumps Gym Hero because energy and mood now matter more than an exact genre label). But it didn't fix the core problem in the Acoustic Metalhead case — the two label bonuses combined (2.50) still dwarf any numeric mismatch. The change is *more accurate* for the happy-pop listener, and *just different* everywhere else.
+
+---
+
 ## Experiments You Tried
 
-### Experiment 1 — Default pop/happy profile
+Three standard profiles and three adversarial/edge-case profiles were run. Results below show terminal output for each.
 
-![Recommendations 1-2](Screenshot%202026-04-09%20at%205.35.14%20PM.png)
-![Recommendations 3-5](Screenshot%202026-04-09%20at%205.35.22%20PM.png)
-![Song 5 detail](Screenshot%202026-04-09%20at%205.35.26%20PM.png)
+---
+(Screenshots did not fit the entire output so I copy-pasted it instead)
+### Profile 1 — High-Energy Pop
 
-Running the recommender with a `pop / happy / energy 0.8` profile ranked Sunrise City #1 with a near-perfect 6.20/6.25 because it hit both the genre and mood bonus (+3.50 combined), which almost no numeric score alone can overcome. Gym Hero ranked #2 despite having an "intense" mood — it still won the genre match (+2.00) and its energy/valence were close enough to hold second place, showing how a single categorical match can carry a song high even when mood is wrong. Rooftop Lights at #3 is the most interesting result: it's labeled "indie pop" not "pop" so it earned zero genre points, but its happy mood and strong numeric proximity still beat out every fully unmatched song. Songs #4 and #5 scored below 2.60 with no categorical matches at all, confirming that the system rarely surfaces a track without at least one genre or mood hit.
+```
+  PROFILE: High-Energy Pop
+  Genre: pop  |  Mood: happy  |  Energy: 0.9
+
+  #1  Sunrise City — Neon Echo         Score: 6.08 / 6.75  (pop / happy)
+  #2  Gym Hero — Max Pulse             Score: 4.61 / 6.75  (pop / intense)
+  #3  Rooftop Lights — Indigo Parade   Score: 3.83 / 6.75  (indie pop / happy)
+  #4  Block Party — The Groove Coll.   Score: 2.60 / 6.75  (hip-hop / energetic)
+  #5  Frequency Drop — Bass Theory     Score: 2.52 / 6.75  (electronic / energetic)
+```
+
+Sunrise City (#1) hit both genre and mood bonuses (+3.50) and nearly matched on every numeric axis, scoring 6.08/6.75. Gym Hero (#2) kept its genre match despite the wrong mood, confirming that a single categorical hit dominates numeric proximity. Rooftop Lights (#3) earned zero genre points ("indie pop" ≠ "pop") but its happy mood and strong numerics still outranked all unmatched tracks.
+
+---
+
+### Profile 2 — Chill Lofi
+
+```
+  PROFILE: Chill Lofi
+  Genre: lofi  |  Mood: chill  |  Energy: 0.35
+
+  #1  Library Rain — Paper Lanterns    Score: 6.21 / 6.75  (lofi / chill)
+  #2  Midnight Coding — LoRoom         Score: 6.10 / 6.75  (lofi / chill)
+  #3  Focus Flow — LoRoom              Score: 4.67 / 6.75  (lofi / focused)
+  #4  Spacewalk Thoughts — Orbit Bloom Score: 4.04 / 6.75  (ambient / chill)
+  #5  Coffee Shop Stories — Slow Stereo Score: 2.56 / 6.75 (jazz / relaxed)
+```
+
+The lofi catalog is well-represented (3 songs), so the top 2 slots are dominated by exact matches. Focus Flow at #3 gets genre points but misses mood ("focused" ≠ "chill"). Spacewalk Thoughts (#4) shows the ambiguity between "ambient" and "lofi" — it wins the mood match but loses the genre bonus, landing just below Focus Flow.
+
+---
+
+### Profile 3 — Deep Intense Rock
+
+```
+  PROFILE: Deep Intense Rock
+  Genre: rock  |  Mood: intense  |  Energy: 0.92
+
+  #1  Storm Runner — Voltline          Score: 6.15 / 6.75  (rock / intense)
+  #2  Gym Hero — Max Pulse             Score: 3.86 / 6.75  (pop / intense)
+  #3  Iron Cathedral — Vortex Hammer   Score: 2.52 / 6.75  (metal / angry)
+  #4  Frequency Drop — Bass Theory     Score: 2.40 / 6.75  (electronic / energetic)
+  #5  Block Party — The Groove Coll.   Score: 2.33 / 6.75  (hip-hop / energetic)
+```
+
+Only one rock song in the catalog (Storm Runner) gets the full genre+mood bonus. Gym Hero (#2) earns second purely on mood match — a pop song beating every metal/electronic track, illustrating how sparse catalog coverage can push adjacent genres to the top.
+
+---
+
+### [ADVERSARIAL] Profile 4 — Conflicted Energy (energy=0.9, mood=sad)
+
+This profile requests high energy (0.9) but mood="sad" — a contradictory ask since high-energy songs in the catalog are tagged "intense," "energetic," or "happy," never "sad."
+
+```
+  PROFILE: Conflicted Energy (energy=0.9, mood=sad)
+  Genre: pop  |  Mood: sad  |  Energy: 0.9
+
+  #1  Gym Hero — Max Pulse             Score: 4.12 / 6.75  (pop / intense)
+  #2  Sunrise City — Neon Echo         Score: 4.10 / 6.75  (pop / happy)
+  #3  Storm Runner — Voltline          Score: 2.39 / 6.75  (rock / intense)
+  #4  Iron Cathedral — Vortex Hammer   Score: 2.34 / 6.75  (metal / angry)
+  #5  Night Drive Loop — Neon Echo     Score: 2.18 / 6.75  (synthwave / moody)
+```
+
+**Finding:** The mood bonus is completely wasted (no "sad" songs exist), so the system falls back on genre match only. The result is tonally incorrect — the recommender surfaces the two happiest pop songs (#1 Gym Hero, #2 Sunrise City) for a listener who asked for sad content. The genre weight dominates and overrides the mood signal entirely.
+
+---
+
+### [ADVERSARIAL] Profile 5 — Acoustic Metalhead (genre=metal, acousticness=0.95)
+
+This profile wants metal + angry mood but also very high acousticness (0.95). The only metal song (Iron Cathedral) has acousticness=0.06 — a direct conflict.
+
+```
+  PROFILE: Acoustic Metalhead (genre=metal, acousticness=0.95)
+  Genre: metal  |  Mood: angry  |  Energy: 0.95
+
+  #1  Iron Cathedral — Vortex Hammer   Score: 5.75 / 6.75  (metal / angry)
+  #2  Storm Runner — Voltline          Score: 2.01 / 6.75  (rock / intense)
+  #3  Night Drive Loop — Neon Echo     Score: 1.88 / 6.75  (synthwave / moody)
+  #4  Rainy Season Blues — The Hollow  Score: 1.85 / 6.75  (folk / melancholic)
+  #5  Frequency Drop — Bass Theory     Score: 1.78 / 6.75  (electronic / energetic)
+```
+
+**Finding:** Iron Cathedral still ranks #1 despite scoring only +0.06 on acousticness, because the genre+mood bonuses (+3.50) massively outweigh the acousticness penalty (-0.89 × 0.50 = -0.45 from max). The gap between #1 (5.75) and #2 (2.01) is enormous — the categorical weights have "tricked" the system into recommending a song that almost perfectly contradicts the user's acousticness preference.
+
+---
+
+### [ADVERSARIAL] Profile 6 — Blank Slate (all 0.5, no genre/mood)
+
+No genre, no mood, all numerics at 0.5. Tests whether the system degrades gracefully when it has no taste signal.
+
+```
+  PROFILE: Blank Slate (all 0.5, no genre/mood)
+  Genre: (none)  |  Mood: (none)  |  Energy: 0.5
+
+  #1  Velvet Evenings — Soulstice      Score: 2.43 / 6.75  (r&b / romantic)
+  #2  Midnight Coding — LoRoom         Score: 2.40 / 6.75  (lofi / chill)
+  #3  Dreamweaver — Pastel Haze        Score: 2.40 / 6.75  (dreampop / dreamy)
+  #4  Focus Flow — LoRoom              Score: 2.31 / 6.75  (lofi / focused)
+  #5  Golden Hour — Marigold           Score: 2.30 / 6.75  (soul / uplifting)
+```
+
+**Finding:** With no categorical bonuses available, scores compress into a narrow 2.30–2.43 band. The top 5 are essentially tied, and the winners are mid-energy, mid-valence tracks — a bias toward the "center" of the numeric space. The system does not crash but the recommendations are essentially random within that band; a real system would need fallback diversity logic here.
+
+---
+
+## Musical Intuition Check — Does Profile 1 Feel Right?
+
+**Profile: High-Energy Pop** (`pop / happy / energy 0.9`)
+
+Mostly yes — Sunrise City at #1 is exactly what you'd expect. But Gym Hero at #2 feels off: it's an intense gym track, not a happy pop song. Rooftop Lights at #3 actually sounds more like what a happy-pop listener would want, but it ranks lower because "indie pop" ≠ "pop" in exact-string matching, so it gets zero genre points.
+
+### Why Sunrise City Ranked #1
+
+It's the only song that hits **both** the genre and mood bonus at once:
+
+```
+Genre match  (pop == pop)      +2.00
+Mood match   (happy == happy)  +1.50
+Energy proximity               +0.92   (|0.82 - 0.90| = 0.08)
+Valence proximity              +0.74   (|0.84 - 0.85| = 0.01)
+Acousticness proximity         +0.46
+Studyability + Niche           +0.45
+──────────────────────────────────────
+TOTAL                           6.08 / 6.75
+```
+
+The two label bonuses alone add up to 3.50 — more than half the max score — so any song that nails both labels is almost impossible to beat on numerics alone.
+
+### Is the Genre Weight Too Strong?
+
+A little. With genre at 2.00, Gym Hero (wrong mood, right genre) consistently beats Rooftop Lights (right mood, wrong genre label). If genre were dropped to 1.00, Rooftop Lights would jump above Gym Hero — which feels more intuitive for someone who asked for happy music. The bigger problem is the 18-song catalog: with only 1–2 songs per genre, the #1 slot is often locked in by whoever holds the exact label match.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
-
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+- Only 18 songs across 14 genres — rarely more than 2 songs per genre, so variety is almost impossible
+- Exact string matching treats "indie pop," "pop," and "dance pop" as completely different genres
+- Mood labels aren't standardized — "relaxed," "chill," and "calm" would score as total mismatches even if they feel the same
+- Categorical bonuses make up ~52% of the max score, so label accuracy matters more than numeric fit
+- No diversity logic — same songs dominate every run of the same profile
 
 ---
 

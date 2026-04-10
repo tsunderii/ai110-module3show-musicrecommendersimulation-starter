@@ -97,11 +97,11 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     Algorithm Recipe — maximum possible score: 6.25
     ─────────────────────────────────────────────────
     Categorical (exact match bonuses):
-      Genre match  → +2.00   (strong taste signal, but brittle)
+      Genre match  → +1.00   (strong taste signal, but brittle)
       Mood match   → +1.50   (heavier than genre; mood = felt experience)
 
     Numeric (proximity reward, each scaled to its max):
-      Energy       → up to +1.00  (1.0 - |song - target|)
+      Energy       → up to +2.00  (1.0 - |song - target|)
       Valence      → up to +0.75  (happy/dark axis)
       Acousticness → up to +0.50  (organic vs. electronic)
       Studyability → up to +0.25  (optional; skipped if not in user_prefs)
@@ -109,16 +109,16 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     ─────────────────────────────────────────────────
     Why mood outweighs genre: a "chill" listener won't enjoy "intense"
     metal even if genre matches. Mood is the primary vibe signal.
-    Why genre > energy: genre encodes cultural/production context that
-    numeric features can't capture (e.g., lofi texture vs. ambient texture).
+    Why energy > genre: energy directly reflects the felt intensity of a
+    track; a high-energy listener won't enjoy a low-energy genre match.
     """
     score = 0.0
     reasons = []
 
     # --- Categorical bonuses ---
     if song['genre'] == user_prefs.get('genre', ''):
-        score += 2.0
-        reasons.append(f"Genre match ({song['genre']}): +2.00")
+        score += 1.0
+        reasons.append(f"Genre match ({song['genre']}): +1.00")
 
     if song['mood'] == user_prefs.get('mood', ''):
         score += 1.5
@@ -130,7 +130,7 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
         reasons.append(f"{label}: +{pts:.2f}")
         return pts
 
-    score += proximity(song['energy'],      user_prefs.get('energy', 0.5),      1.00, "Energy proximity")
+    score += proximity(song['energy'],      user_prefs.get('energy', 0.5),      2.00, "Energy proximity")
     score += proximity(song['valence'],     user_prefs.get('valence', 0.5),     0.75, "Valence proximity")
     score += proximity(song['acousticness'],user_prefs.get('acousticness', 0.5),0.50, "Acousticness proximity")
 
