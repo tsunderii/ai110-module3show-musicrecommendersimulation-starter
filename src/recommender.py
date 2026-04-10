@@ -142,23 +142,62 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
 
     return score, reasons
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
-    """Score all songs, sort by score descending, and return the top k with explanations."""
-    scored = []
+def recommend_songs(
+    user_prefs: Dict,
+    songs: List[Dict],
+    k: int = 5,
+    artist_penalty: float = 1.0,
+    genre_penalty: float = 0.5,
+) -> List[Tuple[Dict, float, str]]:
+    """
+    Score all songs, then greedily select the top k with a diversity penalty.
+
+    Diversity Penalty Rule
+    ──────────────────────
+    After each song is selected, any remaining candidate whose artist or genre
+    is already represented in the results gets its score reduced before the
+    next pick:
+
+        adjusted_score = base_score
+                         - artist_penalty  (if artist already in results)
+                         - genre_penalty   (if genre already in results)
+
+    This is re-evaluated before every pick so penalties accumulate correctly.
+    A song is never removed from consideration entirely — it just falls lower
+    in the ranking. Default penalties: artist -1.00, genre -0.50.
+
+    Inline Chat prompt used to design this rule:
+        "In recommend_songs(), after selecting each song for the top-k list,
+        subtract 1.0 from the score of any remaining candidate that shares
+        the same artist, and subtract 0.5 for any candidate that shares the
+        same genre. Re-sort the candidates after each pick and continue until
+        k songs are selected. Never discard a song entirely — just penalize it."
+    """
+    # Score every song once up front
+    pool = []
     for song in songs:
         score, reasons = score_song(user_prefs, song)
-        scored.append((song, score, reasons))
-    
-    # Sort by score descending
-    scored.sort(key=lambda x: x[1], reverse=True)
-    
-    # Take top k
-    top = scored[:k]
-    
-    # Format explanation
-    result = []
-    for song, score, reasons in top:
-        explanation = "; ".join(reasons)
-        result.append((song, score, explanation))
-    
-    return result
+        pool.append([song, score, reasons])   # mutable list so we can update adjusted score
+
+    selected: List[Tuple[Dict, float, str]] = []
+    seen_artists: set = set()
+    seen_genres: set  = set()
+
+    for _ in range(min(k, len(pool))):
+        # Re-apply penalties based on what has been selected so far
+        best_idx, best_adj = 0, float("-inf")
+        for i, (song, base_score, _) in enumerate(pool):
+            adj = base_score
+            if song["artist"] in seen_artists:
+                adj -= artist_penalty
+            if song["genre"] in seen_genres:
+                adj -= genre_penalty
+            if adj > best_adj:
+                best_adj, best_idx = adj, i
+
+        song, base_score, reasons = pool.pop(best_idx)
+        seen_artists.add(song["artist"])
+        seen_genres.add(song["genre"])
+        selected.append((song, best_adj, "; ".join(reasons)))
+
+    return selected
