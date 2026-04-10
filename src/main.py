@@ -8,8 +8,16 @@ Profiles:
   4. [ADVERSARIAL] Conflicted Energy — high energy but sad mood (contradictory)
   5. [ADVERSARIAL] Acoustic Metalhead — metal genre but very high acousticness
   6. [ADVERSARIAL] Blank Slate       — all mid-range values, no genre/mood signal
+
+Inline Chat prompt used to design the table output:
+    "Use tabulate to display the top-k recommendations as a table with columns
+    for Rank, Title, Artist, Genre, Mood, Score, and a Reasons column that
+    shows each scoring factor on its own line inside the cell. Use the 'grid'
+    table format so the reasons stay readable. Print a profile header above
+    each table showing the genre, mood, and energy target."
 """
 
+from tabulate import tabulate
 from .recommender import load_songs, recommend_songs
 
 
@@ -92,23 +100,36 @@ PROFILES = [
 
 
 def print_recommendations(label: str, user_prefs: dict, recommendations: list) -> None:
-    width = 66
     genre_disp = user_prefs["genre"] or "(none)"
     mood_disp  = user_prefs["mood"]  or "(none)"
-    print("\n" + "=" * width)
-    print(f"  PROFILE: {label}")
+
+    print(f"\n{'━' * 72}")
+    print(f"  PROFILE : {label}")
     print(f"  Genre: {genre_disp}  |  Mood: {mood_disp}  |  Energy: {user_prefs['energy']}")
-    print("=" * width)
+    print(f"{'━' * 72}")
 
+    rows = []
     for rank, (song, score, explanation) in enumerate(recommendations, start=1):
-        print(f"\n  #{rank}  {song['title']} — {song['artist']}")
-        print(f"       Score : {score:.2f} / 6.75")
-        print(f"       Genre : {song['genre']}  |  Mood: {song['mood']}")
-        print(f"       Why   :")
-        for reason in explanation.split("; "):
-            print(f"               • {reason}")
+        reasons_formatted = "\n".join(
+            f"• {r}" for r in explanation.split("; ")
+        )
+        rows.append([
+            f"#{rank}",
+            song["title"],
+            song["artist"],
+            song["genre"],
+            song["mood"],
+            f"{score:.2f}",
+            reasons_formatted,
+        ])
 
-    print("\n" + "=" * width)
+    print(tabulate(
+        rows,
+        headers=["#", "Title", "Artist", "Genre", "Mood", "Score", "Why"],
+        tablefmt="grid",
+        maxcolwidths=[3, 22, 18, 12, 10, 6, 38],
+    ))
+    print()
 
 
 def main() -> None:
