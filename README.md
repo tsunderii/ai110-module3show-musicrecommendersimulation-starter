@@ -11,7 +11,7 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+This version scores every song in an 18-song catalog against a user's declared preferences — genre, mood, energy, valence, acousticness, studyability, and niche score — using a weighted formula that rewards exact label matches and numeric proximity. It runs six different user profiles including three adversarial edge cases to stress-test the scoring logic, and outputs a ranked table with the full score breakdown for each result. A diversity penalty was also added so the same artist or genre can't dominate the top 5.
 
 ---
 
@@ -266,10 +266,7 @@ Read and complete `model_card.md`:
 
 [**Model Card**](model_card.md)
 
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
+The biggest thing I learned is that recommenders don't actually "understand" music — they just do math on labeled data, so if the labels are wrong or missing, the whole result falls apart. Bias shows up really easily when certain genres or moods have more songs in the catalog, because that genre will almost always win even if it's not actually the best match. Building this made me realize that Spotify isn't recommending you songs so much as it's predicting what you won't skip, which is a completely different problem.
 
 
 ---
