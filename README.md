@@ -92,11 +92,13 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+### Experiment 1 — Default pop/happy profile
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+![Recommendations 1-2](Screenshot%202026-04-09%20at%205.35.14%20PM.png)
+![Recommendations 3-5](Screenshot%202026-04-09%20at%205.35.22%20PM.png)
+![Song 5 detail](Screenshot%202026-04-09%20at%205.35.26%20PM.png)
+
+Running the recommender with a `pop / happy / energy 0.8` profile ranked Sunrise City #1 with a near-perfect 6.20/6.25 because it hit both the genre and mood bonus (+3.50 combined), which almost no numeric score alone can overcome. Gym Hero ranked #2 despite having an "intense" mood — it still won the genre match (+2.00) and its energy/valence were close enough to hold second place, showing how a single categorical match can carry a song high even when mood is wrong. Rooftop Lights at #3 is the most interesting result: it's labeled "indie pop" not "pop" so it earned zero genre points, but its happy mood and strong numeric proximity still beat out every fully unmatched song. Songs #4 and #5 scored below 2.60 with no categorical matches at all, confirming that the system rarely surfaces a track without at least one genre or mood hit.
 
 ---
 

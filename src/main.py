@@ -13,29 +13,37 @@ from .recommender import load_songs, recommend_songs
 
 
 def main() -> None:
-    songs = load_songs("data/songs.csv") 
+    songs = load_songs("data/songs.csv")
+    print(f"Loaded songs: {len(songs)}")
 
-    # Full taste profile — all scoring features represented
+    # pop/happy profile — high energy, upbeat, mainstream
     user_prefs = {
-        "genre":         "lofi",   # preferred genre label
-        "mood":          "chill",  # preferred mood label
-        "energy":        0.38,     # low-key, background listening
-        "valence":       0.60,     # mildly positive, not euphoric
-        "acousticness":  0.80,     # strongly prefers organic/warm sound
-        "studyability":  0.85,     # primarily studies to music
-        "niche_score":   0.65,     # leans toward underground/non-mainstream
+        "genre":        "pop",
+        "mood":         "happy",
+        "energy":       0.80,
+        "valence":      0.82,
+        "acousticness": 0.20,
+        "studyability": 0.30,
+        "niche_score":  0.25,
     }
 
     recommendations = recommend_songs(user_prefs, songs, k=5)
 
-    print("\nTop recommendations:\n")
-    for rec in recommendations:
-        # You decide the structure of each returned item.
-        # A common pattern is: (song, score, explanation)
-        song, score, explanation = rec
-        print(f"{song['title']} - Score: {score:.2f}")
-        print(f"Because: {explanation}")
-        print()
+    width = 60
+    print("\n" + "=" * width)
+    print("  🎵  TOP RECOMMENDATIONS")
+    print(f"  Genre: {user_prefs['genre']}  |  Mood: {user_prefs['mood']}  |  Energy: {user_prefs['energy']}")
+    print("=" * width)
+
+    for rank, (song, score, explanation) in enumerate(recommendations, start=1):
+        print(f"\n  #{rank}  {song['title']} — {song['artist']}")
+        print(f"       Score : {score:.2f} / 6.25")
+        print(f"       Genre : {song['genre']}  |  Mood: {song['mood']}")
+        print(f"       Why   :")
+        for reason in explanation.split("; "):
+            print(f"               • {reason}")
+
+    print("\n" + "=" * width)
 
 
 if __name__ == "__main__":
